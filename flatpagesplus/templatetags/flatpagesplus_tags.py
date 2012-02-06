@@ -2,6 +2,7 @@ from django import template
 from flatpagesplus.models import MainFlatPage
 from django.utils.translation import ugettext as _
 from django.conf import settings
+from django.contrib.sites.models import get_current_site
 
 
 register = template.Library()
@@ -20,7 +21,12 @@ class FlatpageNode(template.Node):
             self.user = None
 
     def render(self, context):
-        flatpages = MainFlatPage.objects.filter(sites__id=settings.SITE_ID)
+        try:
+            request = context['request']
+            site = get_current_site(request)
+            flatpages = MainFlatPage.objects.filter(sites=site)
+        except KeyError:
+            flatpages = MainFlatPage.objects.filter(sites__id=settings.SITE_ID)
         # If a prefix was specified, add a filter
         if self.starts_with:
             flatpages = flatpages.filter(

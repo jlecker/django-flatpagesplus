@@ -6,6 +6,7 @@ from django.conf import settings
 from django.core.xheaders import populate_xheaders
 from django.utils.safestring import mark_safe
 from django.views.decorators.csrf import csrf_protect
+from django.contrib.sites.models import get_current_site
 
 DEFAULT_TEMPLATE = 'flatpagesplus/default.html'
 
@@ -32,17 +33,18 @@ def flatpage(request, url):
         url = "/" + url
     if not url.endswith('/') and settings.APPEND_SLASH:
         return HttpResponseRedirect("%s/" % request.path)
+    site = get_current_site(request)
     try:
-        f = MainFlatPage.objects.get(url__exact=url, sites__id__exact=settings.SITE_ID)
+        f = MainFlatPage.objects.get(url__exact=url, sites=site)
     except MainFlatPage.DoesNotExist:
         if url.endswith('css/'):
-            p = get_object_or_404(MainFlatPage, url__exact=url[:-4], sites__id__exact=settings.SITE_ID)
+            p = get_object_or_404(MainFlatPage, url__exact=url[:-4], sites=site)
             try:
                 return HttpResponse(p.subflatpage_set.get(type='css').content, content_type='text/css')
             except SubFlatPage.DoesNotExist:
                 raise Http404
         elif url.endswith('js/'):
-            p = get_object_or_404(MainFlatPage, url__exact=url[:-3], sites__id__exact=settings.SITE_ID)
+            p = get_object_or_404(MainFlatPage, url__exact=url[:-3], sites=site)
             try:
                 return HttpResponse(p.subflatpage_set.get(type='js').content, content_type='text/javascript')
             except SubFlatPage.DoesNotExist:
